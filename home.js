@@ -64,6 +64,10 @@ const srcTermHome = document.getElementById('srcTermHome');
 const dstTermHome = document.getElementById('dstTermHome');
 const btnCancelAddWord = document.getElementById('btnCancelAddWord');
 const btnConfirmAddWord = document.getElementById('btnConfirmAddWord');
+const btnExportBackup = document.getElementById('btnExportBackup');
+const btnImportBackup = document.getElementById('btnImportBackup');
+const backupFileInput = document.getElementById('backupFileInput');
+
 
 // text holders
 const txtSectionStudied = document.getElementById('txtSectionStudied');
@@ -210,12 +214,13 @@ function hideNewLangSheet() { newLangSheet.classList.add('hidden'); }
 
 // ADD WORD FROM HOME
 function showAddWordSheet() {
-  if (!dictionaries.length) {
-    alert('Prima crea una lingua da imparare.');
+  const visibleDicts = dictionaries.filter(d => d.refLang === currentRefLang.code);
+  if (!visibleDicts.length) {
+    alert('Prima crea una lingua da imparare per questa lingua di riferimento.');
     return;
   }
   dictSelectForWord.innerHTML = '';
-  dictionaries.forEach(d => {
+  visibleDicts.forEach(d => {
     const lang = LANGS[d.targetLang] || { name: d.targetLang, flag: '📘' };
     const opt = document.createElement('option');
     opt.value = d.id;
@@ -326,13 +331,14 @@ function getWordCountForDict(id) {
 
 async function renderDictList() {
   dictListEl.innerHTML = '';
-  if (!dictionaries.length) {
+  const visibleDicts = dictionaries.filter(d => d.refLang === currentRefLang.code);
+  if (!visibleDicts.length) {
     emptyStateEl.style.display = 'block';
     return;
   }
   emptyStateEl.style.display = 'none';
 
-  for (const dict of dictionaries) {
+  for (const dict of visibleDicts) {
     const lang = LANGS[dict.targetLang] || { name: dict.targetLang, flag: '📘' };
     const ref = LANGS[dict.refLang] || currentRefLang;
     const count = await getWordCountForDict(dict.id);
@@ -354,14 +360,14 @@ async function renderDictList() {
       <div class="dict-meta">
         <div class="pill-count">${count} vocaboli</div>
         <svg class="chevron" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M7.22 4.22a.75.75 0 011.06 0L13 8.94a.75.75 0 010 1.06l-4.72 4.72a.75.75 0 11-1.06-1.06L11.44 9.5 7.22 5.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
+          <path d="M7.22 4.22a.75.75 0 011.06 0l4.25 4.25a.75.75 0 010 1.06l-4.25 4.25a.75.75 0 11-1.06-1.06L10.94 10 7.22 6.28a.75.75 0 010-1.06z"/>
         </svg>
       </div>
     `;
-    inner.addEventListener('click', () => openDict(dict.id));
 
     const actions = document.createElement('div');
     actions.className = 'dict-actions';
+
     const delBtn = document.createElement('button');
     delBtn.className = 'dict-btn delete';
     delBtn.textContent = 'Cancella';
@@ -435,22 +441,24 @@ btnConfirmNewLang.addEventListener('click', () => {
   if (!code) return;
   const tx = db.transaction('dictionaries', 'readwrite');
   const store = tx.objectStore('dictionaries');
-  const dict = {
-    targetLang: code,
-    refLang: currentRefLang.code,
-    createdAt: Date.now()
-  };
-  store.getAll().onsuccess = ev => {
-  const list = ev.target.result;
-  if (list.some(d => d.targetLang === code && d.refLang === currentRefLang.code)) {
-    alert("Questo vocabolario esiste già.");
-    return;
-  }
-  const req = store.add(dict);
-};
-  req.onsuccess = () => {
-    hideNewLangSheet();
-    loadDictionaries();
+  const getReq = store.getAll();
+  getReq.onsuccess = (ev) => {
+    const list = ev.target.result || [];
+    const exists = list.some(d => d.targetLang === code && d.refLang === currentRefLang.code);
+    if (exists) {
+      alert('Questo vocabolario esiste già.');
+      return;
+    }
+    const dict = {
+      targetLang: code,
+      refLang: currentRefLang.code,
+      createdAt: Date.now()
+    };
+    const req = store.add(dict);
+    req.onsuccess = () => {
+      hideNewLangSheet();
+      loadDictionaries();
+    };
   };
 });
 
@@ -478,4 +486,167 @@ function attachEvents() {
   addWordSheet.addEventListener('click', (e) => {
     if (e.target === addWordSheet) hideAddWordSheet();
   });
+  if (btnExportBackup) {
+    btnExportBackup.addEventListener('click', exportBackup);
+  }
+  if (btnImportBackup) {
+    btnImportBackup.addEventListener('click', () => backupFileInput && backupFileInput.click());
+  }
+  if (backupFileInput) {
+    backupFileInput.addEventListener('change', handleBackupFileSelection);
+  }
+
+}
+
+// BACKUP EXPORT / IMPORT
+function exportBackup() {
+  if (!db) {
+    alert('Database non pronto.');
+    return;
+  }
+  const tx = db.transaction(['dictionaries','words'], 'readonly');
+  const dictStore = tx.objectStore('dictionaries');
+  const wordStore = tx.objectStore('words');
+  const backup = { version: 1, createdAt: Date.now(), dictionaries: [], words: [] };
+
+  const dictReq = dictStore.getAll();
+  const wordReq = wordStore.getAll();
+
+  tx.oncomplete = () => {
+    backup.dictionaries = dictReq.result || [];
+    backup.words = wordReq.result || [];
+
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const dateStr = new Date().toISOString().slice(0,10);
+    a.href = url;
+    a.download = 'lang_trainer_backup_' + dateStr + '.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+  tx.onerror = () => {
+    alert('Errore durante la creazione del backup.');
+  };
+}
+
+function handleBackupFileSelection() {
+  const file = backupFileInput.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      importBackupData(data);
+    } catch (e) {
+      console.error(e);
+      alert('Backup non valido.');
+    } finally {
+      backupFileInput.value = '';
+    }
+  };
+  reader.readAsText(file);
+}
+
+function importBackupData(data) {
+  if (!db) {
+    alert('Database non pronto.');
+    return;
+  }
+  if (!data || !Array.isArray(data.dictionaries) || !Array.isArray(data.words)) {
+    alert('Backup non valido.');
+    return;
+  }
+
+  // Step 1: leggi stato attuale
+  const tx1 = db.transaction(['dictionaries','words'], 'readonly');
+  const dictStore1 = tx1.objectStore('dictionaries');
+  const wordStore1 = tx1.objectStore('words');
+  const dictReq1 = dictStore1.getAll();
+  const wordReq1 = wordStore1.getAll();
+
+  tx1.oncomplete = () => {
+    const existingDicts = dictReq1.result || [];
+    const existingWords = wordReq1.result || [];
+
+    const dictIdMap = {};
+
+    // Step 2: crea nuovi dizionari se necessario
+    const tx2 = db.transaction('dictionaries', 'readwrite');
+    const dictStore2 = tx2.objectStore('dictionaries');
+
+    data.dictionaries.forEach(bd => {
+      if (!bd || !bd.targetLang || !bd.refLang) return;
+      const match = existingDicts.find(d => d.targetLang === bd.targetLang && d.refLang === bd.refLang);
+      if (match) {
+        dictIdMap[bd.id] = match.id;
+      } else {
+        const addReq = dictStore2.add({
+          targetLang: bd.targetLang,
+          refLang: bd.refLang,
+          createdAt: bd.createdAt || Date.now()
+        });
+        addReq.onsuccess = (ev) => {
+          dictIdMap[bd.id] = ev.target.result;
+        };
+      }
+    });
+
+    tx2.oncomplete = () => {
+      // Step 3: importa parole
+      const tx3 = db.transaction('words', 'readwrite');
+      const wordStore2 = tx3.objectStore('words');
+      const currentWords = existingWords.slice();
+
+      data.words.forEach(bw => {
+        if (!bw || typeof bw.dictId === 'undefined') return;
+        const newDictId = dictIdMap[bw.dictId];
+        if (!newDictId) return;
+        const termRef = bw.termRef || bw.sourceTerm;
+        const termTarget = bw.termTarget || bw.targetTerm;
+        if (!termRef || !termTarget) return;
+
+        const duplicate = currentWords.some(w =>
+          w.dictId === newDictId &&
+          w.termRef === termRef &&
+          w.termTarget === termTarget
+        );
+        if (duplicate) return;
+
+        const addReq = wordStore2.add({
+          dictId: newDictId,
+          termRef,
+          termTarget,
+          createdAt: bw.createdAt || Date.now()
+        });
+        addReq.onsuccess = (ev) => {
+          currentWords.push({
+            id: ev.target.result,
+            dictId: newDictId,
+            termRef,
+            termTarget,
+            createdAt: bw.createdAt || Date.now()
+          });
+        };
+      });
+
+      tx3.oncomplete = () => {
+        alert('Backup importato con successo.');
+        loadDictionaries();
+      };
+      tx3.onerror = () => {
+        alert('Errore durante l\'import del backup (parole).');
+      };
+    };
+
+    tx2.onerror = () => {
+      alert('Errore durante l\'import del backup (dizionari).');
+    };
+  };
+
+  tx1.onerror = () => {
+    alert('Errore durante la lettura del database per l\'import.');
+  };
 }

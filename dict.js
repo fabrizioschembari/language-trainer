@@ -221,10 +221,10 @@ function renderChapters() {
       actions.className = 'entry-actions';
       const editBtn = document.createElement('button');
       editBtn.className = 'entry-btn edit';
-      editBtn.textContent = 'Mod.';
+      editBtn.textContent = 'Modifica';
       const delBtn = document.createElement('button');
       delBtn.className = 'entry-btn delete';
-      delBtn.textContent = 'Canc.';
+      delBtn.textContent = 'Cancella';
 
       actions.appendChild(editBtn);
       actions.appendChild(delBtn);
@@ -350,7 +350,7 @@ function setupEntrySwipe(row) {
 // events
 function attachEvents() {
   backBtn.addEventListener('click', () => {
-    window.location.href = 'index.html';
+    window.history.back();
   });
 
   searchInput.addEventListener('input', renderChapters);
@@ -404,18 +404,12 @@ function attachEvents() {
       existing.termTarget = termTarget;
       store.put(existing);
     } else {
-      store.getAll().onsuccess = ev => {
-    const list = ev.target.result;
-    if (list.some(w => w.dictId===dictId && w.sourceTerm===termRef && w.targetTerm===termTarget)) {
-        alert("Questa parola esiste già.");
-        return;
-    }
-    store.add({
+      store.add({
         dictId,
         termRef,
         termTarget,
-        createdAt: Date.now()});
-};
+        createdAt: Date.now()
+      });
     }
 
     tx.oncomplete = () => {
