@@ -221,10 +221,10 @@ function renderChapters() {
       actions.className = 'entry-actions';
       const editBtn = document.createElement('button');
       editBtn.className = 'entry-btn edit';
-      editBtn.textContent = 'Mod.';
+      editBtn.textContent = 'Modifica';
       const delBtn = document.createElement('button');
       delBtn.className = 'entry-btn delete';
-      delBtn.textContent = 'Canc.';
+      delBtn.textContent = 'Cancella';
 
       actions.appendChild(editBtn);
       actions.appendChild(delBtn);
