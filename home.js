@@ -472,37 +472,3 @@ function attachEvents() {
     if (e.target === addWordSheet) hideAddWordSheet();
   });
 }
-
-
-function showDictView(id){
-  document.getElementById('homeView')?.style?.display='none';
-  document.getElementById('dictView').style.display='block';
-  // set global for dict.js
-  window.location.hash = "#dict?id="+id;
-  // load words via dict.js if available
-  if (typeof loadWordsForSPA === 'function') loadWordsForSPA(id);
-}
-
-// SPA navigation
-function showHome(){
-  document.getElementById('dictView').style.display='none';
-  document.querySelector('main').style.display='block';
-  window.location.hash="#home";
-}
-
-function showDict(id){
-  document.querySelector('main').style.display='none';
-  const dv=document.getElementById('dictView');
-  dv.style.display='block';
-  window.location.hash="#dict/"+id;
-  loadWordsSPA(id);
-}
-
-document.getElementById('btnBackHome').onclick=showHome;
-
-function loadWordsSPA(id){
-  // Simple loader: reuse dict.js logic
-  if(typeof loadWordsForSPA==='function'){
-     loadWordsForSPA(id);
-  }
-}

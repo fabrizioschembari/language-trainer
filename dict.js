@@ -419,26 +419,3 @@ function attachEvents() {
     };
   });
 }
-
-
-function loadWordsForSPA(id){
-  dictId = parseInt(id);
-  loadWords();
-}
-
-// SPA loader from dictionary id
-function loadWordsForSPA(id){
-  dictId=parseInt(id);
-  document.getElementById('wordList').innerHTML='';
-  loadWords().then(()=>{
-    // rewrite DOM into SPA list
-    const wl=document.getElementById('wordList');
-    wl.innerHTML='';
-    allWords.forEach(w=>{
-      const d=document.createElement('div');
-      d.className='word-spa';
-      d.textContent=w.termRef+" → "+w.termTarget;
-      wl.appendChild(d);
-    });
-  });
-}

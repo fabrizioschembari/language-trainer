@@ -58,7 +58,7 @@
         Nessuna lingua aggiunta ancora. Premi "Aggiungi nuova lingua" per creare il tuo primo dizionario.
       </div>
     </section>
-  <div id="dictView" style="display:none;"></div></main>
+  </main>
 
   <!-- Sheet: cambia lingua di riferimento -->
   <div class="backdrop hidden" id="refLangSheet">
@@ -138,12 +138,5 @@
       navigator.serviceWorker.register('service-worker.js');
     }
   </script>
-
-<div id="dictView" style="display:none; padding:16px;">
-  <button id="btnBackHome" class="btn">← Torna ai vocabolari</button>
-  <h2 id="dictTitle"></h2>
-  <div id="wordList"></div>
-  <button id="btnAddWordSPA" class="btn">Aggiungi parola</button>
-</div>
 </body>
 </html>
