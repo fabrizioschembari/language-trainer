@@ -326,15 +326,13 @@ function getWordCountForDict(id) {
 
 async function renderDictList() {
   dictListEl.innerHTML = '';
-  const visibleDicts = dictionaries.filter(d => d.refLang === currentRefLang.code);
-
-  if (!visibleDicts.length) {
+  if (!dictionaries.length) {
     emptyStateEl.style.display = 'block';
     return;
   }
   emptyStateEl.style.display = 'none';
 
-  for (const dict of visibleDicts) {
+  for (const dict of dictionaries) {
     const lang = LANGS[dict.targetLang] || { name: dict.targetLang, flag: '📘' };
     const ref = LANGS[dict.refLang] || currentRefLang;
     const count = await getWordCountForDict(dict.id);
@@ -356,14 +354,14 @@ async function renderDictList() {
       <div class="dict-meta">
         <div class="pill-count">${count} vocaboli</div>
         <svg class="chevron" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M7.22 4.22a.75.75 0 011.06 0l4.25 4.25a.75.75 0 010 1.06l-4.25 4.25a.75.75 0 11-1.06-1.06L10.94 10 7.22 6.28a.75.75 0 010-1.06z"/>
+          <path fill-rule="evenodd" d="M7.22 4.22a.75.75 0 011.06 0L13 8.94a.75.75 0 010 1.06l-4.72 4.72a.75.75 0 11-1.06-1.06L11.44 9.5 7.22 5.28a.75.75 0 010-1.06z" clip-rule="evenodd"/>
         </svg>
       </div>
     `;
+    inner.addEventListener('click', () => openDict(dict.id));
 
     const actions = document.createElement('div');
     actions.className = 'dict-actions';
-
     const delBtn = document.createElement('button');
     delBtn.className = 'dict-btn delete';
     delBtn.textContent = 'Cancella';
@@ -442,7 +440,14 @@ btnConfirmNewLang.addEventListener('click', () => {
     refLang: currentRefLang.code,
     createdAt: Date.now()
   };
+  store.getAll().onsuccess = ev => {
+  const list = ev.target.result;
+  if (list.some(d => d.targetLang === code && d.refLang === currentRefLang.code)) {
+    alert("Questo vocabolario esiste già.");
+    return;
+  }
   const req = store.add(dict);
+};
   req.onsuccess = () => {
     hideNewLangSheet();
     loadDictionaries();

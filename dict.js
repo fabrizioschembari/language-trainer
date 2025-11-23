@@ -221,10 +221,10 @@ function renderChapters() {
       actions.className = 'entry-actions';
       const editBtn = document.createElement('button');
       editBtn.className = 'entry-btn edit';
-      editBtn.textContent = 'Modifica';
+      editBtn.textContent = 'Mod.';
       const delBtn = document.createElement('button');
       delBtn.className = 'entry-btn delete';
-      delBtn.textContent = 'Cancella';
+      delBtn.textContent = 'Canc.';
 
       actions.appendChild(editBtn);
       actions.appendChild(delBtn);
@@ -406,21 +406,15 @@ function attachEvents() {
     } else {
       store.getAll().onsuccess = ev => {
     const list = ev.target.result;
-    const exists = list.some(w =>
-      w.dictId === dictId &&
-      w.termRef === termRef &&
-      w.termTarget === termTarget
-    );
-    if (exists) {
-      alert("Questa parola esiste già.");
-      return;
+    if (list.some(w => w.dictId===dictId && w.sourceTerm===termRef && w.targetTerm===termTarget)) {
+        alert("Questa parola esiste già.");
+        return;
     }
     store.add({
-      dictId,
-      termRef,
-      termTarget,
-      createdAt: Date.now()
-    });
+        dictId,
+        termRef,
+        termTarget,
+        createdAt: Date.now()});
 };
     }
 
