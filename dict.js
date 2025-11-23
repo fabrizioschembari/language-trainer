@@ -419,3 +419,9 @@ function attachEvents() {
     };
   });
 }
+
+
+function loadWordsForSPA(id){
+  dictId = parseInt(id);
+  loadWords();
+}
