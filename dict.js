@@ -221,10 +221,10 @@ function renderChapters() {
       actions.className = 'entry-actions';
       const editBtn = document.createElement('button');
       editBtn.className = 'entry-btn edit';
-      editBtn.textContent = 'Modifica';
+      editBtn.textContent = 'Mod.';
       const delBtn = document.createElement('button');
       delBtn.className = 'entry-btn delete';
-      delBtn.textContent = 'Cancella';
+      delBtn.textContent = 'Canc.';
 
       actions.appendChild(editBtn);
       actions.appendChild(delBtn);
@@ -350,7 +350,7 @@ function setupEntrySwipe(row) {
 // events
 function attachEvents() {
   backBtn.addEventListener('click', () => {
-    window.history.back();
+    window.location.href = 'index.html';
   });
 
   searchInput.addEventListener('input', renderChapters);
