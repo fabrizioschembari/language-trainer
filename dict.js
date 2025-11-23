@@ -419,3 +419,79 @@ function attachEvents() {
     };
   });
 }
+
+
+// === EXPORT/IMPORT PATCH ===
+// Patch for dict.js: Export/Import functions for dictionaries and words
+
+/*
+ Add two functions:
+  - exportAllData(): download JSON with dictionaries and words
+  - importAllData(file): load JSON and write into IndexedDB
+*/
+
+// === EXPORT ===
+async function exportAllData() {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(["dictionaries", "words"], "readonly");
+    const dictStore = tx.objectStore("dictionaries");
+    const wordStore = tx.objectStore("words");
+
+    const dictReq = dictStore.getAll();
+    const wordReq = wordStore.getAll();
+
+    tx.oncomplete = () => {
+      const data = {
+        dictionaries: dictReq.result,
+        words: wordReq.result
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "vocabulary_backup.json";
+      a.click();
+      URL.revokeObjectURL(url);
+      resolve();
+    };
+
+    tx.onerror = (e) => reject(e);
+  });
+}
+
+// === IMPORT ===
+async function importAllData(file) {
+  const text = await file.text();
+  const data = JSON.parse(text);
+
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(["dictionaries", "words"], "readwrite");
+    const dictStore = tx.objectStore("dictionaries");
+    const wordStore = tx.objectStore("words");
+
+    dictStore.clear();
+    wordStore.clear();
+
+    for (const d of data.dictionaries) {
+      dictStore.put(d);
+    }
+    for (const w of data.words) {
+      wordStore.put(w);
+    }
+
+    tx.oncomplete = () => resolve();
+    tx.onerror = (e) => reject(e);
+  });
+}
+
+// Bindings
+if (document.getElementById("btnExport")) {
+  document.getElementById("btnExport").onclick = exportAllData;
+}
+if (document.getElementById("btnImport")) {
+  document.getElementById("btnImport").onchange = (e) => {
+    const file = e.target.files[0];
+    if (file) importAllData(file).then(() => alert("Import completato"));
+  };
+}
